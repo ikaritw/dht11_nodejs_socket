@@ -34,3 +34,7 @@ node_modules
 
 # Config
 config/*
+
+# time-lapse
+time-lapse/*.jpeg
+
