@@ -127,6 +127,5 @@ var worksheet_id;
 
 async.series([
   setAuth,
-  getInfoAndWorksheets,
-  workingAddingRows
+  getInfoAndWorksheets
 ]);

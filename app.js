@@ -107,8 +107,8 @@ function workingAddingRows(rawdata) {
       Hostname:hostname,
       Mac:mac,
       Address:address,
-      Temperature:rawdata.temperature.toFixed(2),
-      Humidity:rawdata.humidity.toFixed(2)
+      Temperature:rawdata.temperature,
+      Humidity:rawdata.humidity
     };
     
     //console.log(new_row);
@@ -127,6 +127,7 @@ function workingAddingRows(rawdata) {
  */
 var sensorLib = require('node-dht-sensor');
 var readout = null;
+var sensorInterval = 60;
 var sensor = {
   initialize: function() {
     return sensorLib.initialize(11, 2);
@@ -137,7 +138,7 @@ var sensor = {
     console.log('Temperature: ' + readout.temperature.toFixed(2) + 'C, ' + 'humidity: ' + readout.humidity.toFixed(2) + '%');
     setTimeout(function() {
       sensor.read();
-    }, 5000);
+    }, sensorInterval * 1000);
   }
 };
 if (sensor.initialize()) {
