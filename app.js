@@ -25,6 +25,61 @@ app.use(express.static(path.join(__dirname, 'public')));
 var routes = require('./routes/index');
 app.use('/', routes);
 
+var util = require('util');
+app.post('/history', function(req, res) {
+    var startTimestamp = req.query.startTimestamp;
+    
+    if(sheet){
+        if (startTimestamp) {
+            var options = {
+                limit: (60/5)*60*24,
+                query: util.format("timestamp > %s ", startTimestamp)
+            };
+    
+            console.dir(options);
+    
+            sheet.getRows(options, function(err, rows) {
+                if (err) {
+                    console.error(err);
+                }
+    
+                var dps_temp = [];
+                var dps_hum = [];
+                if (rows) {
+                    console.log('Read ' + rows.length + ' rows');
+    
+                    var xVal;
+                    for (var i = 0; i < rows.length; i++) {
+                        xVal = parseInt(rows[i].timestamp);
+                        dps_temp.push({
+                            x: xVal,
+                            y: parseInt(rows[i].temperature)
+                        });
+    
+                        dps_hum.push({
+                            x: xVal,
+                            y: parseInt(rows[i].humidity)
+                        });
+                    }
+                }
+                
+                var result = {'dps_temp': dps_temp,'dps_hum': dps_hum};
+                res.json(result);
+            });
+        }
+        else {
+            res.json({error:"No startTimestamp"});
+        }
+    } else {
+        res.json({error:"No Sheet"});
+    }
+});
+
+app.get('/history', function(req, res) {
+    var result = { 'title': 'History'};
+    res.render('history', result);
+});
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -202,6 +257,7 @@ function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
   debug('Listening on ' + bind);
+  console.log('Listening on ' + bind);
 }
 
 var http = require('http');
@@ -239,3 +295,4 @@ io.on('connection', function(http_socket) {
 
 
 server.listen(port);
+console.log("Here we go!!");

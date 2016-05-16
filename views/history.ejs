@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title><%= title %></title>
+	<!--Bootstrap-->
+	<link href="./css/bootstrap.css" rel="stylesheet" media="screen">
+</head>
+<body>
+	<div class="jumbotron">
+		<div class="container ">
+			<h1>DHT-11 on Raspberry Pi with NodeJS</h1>
+		</div>
+	</div>
+	<div class="container">
+		<div id="chartContainerTemp" style="height: 300px; width:100%;"></div>
+		<div id="chartContainerHum" style="height: 300px; width:100%;"></div>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+	<script src="/js/canvasjs.min.js"></script>
+	<script src="/js/history.js"></script>
+</body>
+</html>
