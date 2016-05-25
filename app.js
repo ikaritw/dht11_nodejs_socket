@@ -5,6 +5,20 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+var winston = require('winston');
+var log = new(winston.Logger)({
+    level: 'debug',
+    transports: [
+        new(winston.transports.Console)({
+            colorize: true,
+            timestamp: true
+        }),
+        new(winston.transports.File)({
+            filename: 'sensor.log'
+        })
+    ]
+});
+
 var app = express();
 
 // view engine setup
@@ -16,7 +30,7 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-  extended: false
+    extended: false
 }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -28,26 +42,26 @@ app.use('/', routes);
 var util = require('util');
 app.post('/history', function(req, res) {
     var startTimestamp = req.query.startTimestamp;
-    
-    if(sheet){
+
+    if (sheet) {
         if (startTimestamp) {
             var options = {
-                limit: (60/5)*60*24,
+                limit: (60 / 5) * 60 * 24,
                 query: util.format("timestamp > %s ", startTimestamp)
             };
-    
-            console.dir(options);
-    
+
+            log.debug(options);
+
             sheet.getRows(options, function(err, rows) {
                 if (err) {
-                    console.error(err);
+                    log.error(err);
                 }
-    
+
                 var dps_temp = [];
                 var dps_hum = [];
                 if (rows) {
-                    console.log('Read ' + rows.length + ' rows');
-    
+                    log.info('Read ' + rows.length + ' rows');
+
                     var xVal;
                     for (var i = 0; i < rows.length; i++) {
                         xVal = parseInt(rows[i].timestamp);
@@ -55,37 +69,47 @@ app.post('/history', function(req, res) {
                             x: xVal,
                             y: parseInt(rows[i].temperature)
                         });
-    
+
                         dps_hum.push({
                             x: xVal,
                             y: parseInt(rows[i].humidity)
                         });
                     }
                 }
-                
-                var result = {'dps_temp': dps_temp,'dps_hum': dps_hum};
+
+                var result = {
+                    'dps_temp': dps_temp,
+                    'dps_hum': dps_hum
+                };
                 res.json(result);
             });
         }
         else {
-            res.json({error:"No startTimestamp"});
+            res.json({
+                error: "No startTimestamp"
+            });
         }
-    } else {
-        res.json({error:"No Sheet"});
+    }
+    else {
+        res.json({
+            error: "No Sheet"
+        });
     }
 });
 
 app.get('/history', function(req, res) {
-    var result = { 'title': 'History'};
+    var result = {
+        'title': 'History'
+    };
     res.render('history', result);
 });
 
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
 });
 
 // error handlers
@@ -93,23 +117,23 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
+    app.use(function(err, req, res, next) {
+        res.status(err.status || 500);
+        res.render('error', {
+            message: err.message,
+            error: err
+        });
     });
-  });
 }
 
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
+    res.status(err.status || 500);
+    res.render('error', {
+        message: err.message,
+        error: {}
+    });
 });
 
 
@@ -132,48 +156,48 @@ var address = networkInterface.address;
 var doc = new GoogleSpreadsheet('1TuN9UybupLKkY_z-R0u_11Gw-qrdfL15_I8ucg3GF4c');
 var sheet;
 async.series([
-  function setAuth(step) {
-    // see notes below for authentication instructions!
-    var creds = require('./config/ikaritw-dev-f0588cfab94d.json');
-    // OR, if you cannot save the file locally (like on heroku)
-    var creds_json = {
-      client_email: 'yourserviceaccountemailhere@google.com',
-      private_key: 'your long private key stuff here'
+    function setAuth(step) {
+        // see notes below for authentication instructions!
+        var creds = require('./config/ikaritw-dev-f0588cfab94d.json');
+        // OR, if you cannot save the file locally (like on heroku)
+        var creds_json = {
+            client_email: 'yourserviceaccountemailhere@google.com',
+            private_key: 'your long private key stuff here'
+        }
+
+        doc.useServiceAccountAuth(creds, step);
+    },
+    function getInfoAndWorksheets(step) {
+        doc.getInfo(function(err, info) {
+            log.info('Loaded doc: ' + info.title + ' by ' + info.author.email);
+            sheet = info.worksheets[0];
+            worksheet_id = sheet.id;
+            log.info('sheet 1: ' + sheet.id + ' ' + sheet.title + ' ' + sheet.rowCount + 'x' + sheet.colCount);
+            step();
+        });
     }
-  
-    doc.useServiceAccountAuth(creds, step);
-  },
-  function getInfoAndWorksheets(step) {
-    doc.getInfo(function(err, info) {
-      console.log('Loaded doc: '+info.title+' by '+info.author.email);
-      sheet = info.worksheets[0];
-      worksheet_id = sheet.id;
-      console.log('sheet 1: '+ sheet.id + ' ' + sheet.title+' '+sheet.rowCount+'x'+sheet.colCount);
-      step();
-    });
-  }
 ]);
 
 function workingAddingRows(rawdata) {
-  // Add a single row to the sheet.
-  if(sheet && rawdata){
-    var new_row = {
-      Timestamp:(new Date()).getTime(),
-      Hostname:hostname,
-      Mac:mac,
-      Address:address,
-      Temperature:rawdata.temperature,
-      Humidity:rawdata.humidity
-    };
-    
-    //console.log(new_row);
-    
-    sheet.addRow(new_row, function(err){
-      if(err){
-        console.error(err);
-      }
-    });
-  }
+    // Add a single row to the sheet.
+    if (sheet && rawdata) {
+        var new_row = {
+            Timestamp: (new Date()).getTime(),
+            Hostname: hostname,
+            Mac: mac,
+            Address: address,
+            Temperature: rawdata.temperature,
+            Humidity: rawdata.humidity
+        };
+
+        //log.debug(new_row);
+
+        sheet.addRow(new_row, function(err) {
+            if (err) {
+                log.error(err);
+            }
+        });
+    }
 }
 
 
@@ -184,22 +208,28 @@ var sensorLib = require('node-dht-sensor');
 var readout = null;
 var sensorInterval = 60;
 var sensor = {
-  initialize: function() {
-    return sensorLib.initialize(11, 2);
-  },
-  read: function() {
-    readout = sensorLib.read();
+    initialize: function() {
+        return sensorLib.initialize(11, 2);
+    },
+    read: function() {
+        readout = sensorLib.read();
+
+        //Log to locale file
+        log.info('DHT11', readout);
+
+        //Log to Google Sheet
     workingAddingRows(readout);
-    console.log('Temperature: ' + readout.temperature.toFixed(2) + 'C, ' + 'humidity: ' + readout.humidity.toFixed(2) + '%');
-    setTimeout(function() {
-      sensor.read();
-    }, sensorInterval * 1000);
-  }
+
+        setTimeout(function() {
+            sensor.read();
+        }, sensorInterval * 1000);
+    }
 };
 if (sensor.initialize()) {
-  sensor.read();
-} else {
-  console.warn('Failed to initialize sensor');
+    sensor.read();
+}
+else {
+    log.warn('Failed to initialize sensor');
 }
 
 var debug = require('debug')('dht11_express_socket:server');
@@ -208,19 +238,19 @@ var debug = require('debug')('dht11_express_socket:server');
  */
 
 function normalizePort(val) {
-  var port = parseInt(val, 10);
+    var port = parseInt(val, 10);
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
+    if (isNaN(port)) {
+        // named pipe
+        return val;
+    }
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+    if (port >= 0) {
+        // port number
+        return port;
+    }
 
-  return false;
+    return false;
 }
 
 /**
@@ -228,25 +258,25 @@ function normalizePort(val) {
  */
 
 function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
 
-  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+    var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            log.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            log.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
 }
 
 /**
@@ -254,10 +284,10 @@ function onError(error) {
  */
 
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  debug('Listening on ' + bind);
-  console.log('Listening on ' + bind);
+    var addr = server.address();
+    var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+    log.info('Listening on ' + bind);
 }
 
 var http = require('http');
@@ -281,18 +311,18 @@ server.on('listening', onListening);
 
 
 // Hook Socket.io into Express
-var UI_UPDATE_RATE = 5;
+var UI_UPDATE_RATE = 60;
 var io = require('socket.io').listen(server);
 io.on('connection', function(http_socket) {
-  console.log("Socket connected");
-  // Emits battery stats every UPDATE_RATE seconds
-  setInterval(function() {
-    http_socket.emit('old_data', {
-      livedata: readout
-    });
-  }, UI_UPDATE_RATE * 1000);
+    log.info("Socket connected");
+    // Emits battery stats every UPDATE_RATE seconds
+    setInterval(function() {
+        http_socket.emit('old_data', {
+            livedata: readout
+        });
+    }, UI_UPDATE_RATE * 1000);
 });
 
 
 server.listen(port);
-console.log("Here we go!!");
+log.info("Here we go!!");
