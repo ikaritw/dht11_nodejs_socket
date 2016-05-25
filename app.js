@@ -40,7 +40,7 @@ var routes = require('./routes/index');
 app.use('/', routes);
 
 var util = require('util');
-app.post('/history', function(req, res) {
+app.post('/GoogleQuery', function(req, res) {
     var startTimestamp = req.query.startTimestamp;
 
     if (sheet) {
@@ -97,11 +97,38 @@ app.post('/history', function(req, res) {
     }
 });
 
-app.get('/history', function(req, res) {
+app.get('/GoogleQuery', function(req, res) {
     var result = {
         'title': 'History'
     };
     res.render('history', result);
+});
+
+app.post('/WinstonQuery', function(req, res) {
+    var options = {
+        from: Date.now - 24 * 60 * 60 * 1000,
+        until: Date.now,
+        limit: 60 * 60 * 24,
+        start: 0,
+        order: 'asc',
+        fields: ['timestamp', 'humidity', 'temperature']
+    };
+    
+    //
+    // Find items logged between today and yesterday.
+    //
+    log.query(options, function(err, results) {
+        if (err) {
+            throw err;
+        }
+        res.json(results);
+    });
+});
+app.get('/WinstonQuery', function(req, res) {
+    var result = {
+        'title': 'WinstonQuery'
+    };
+    res.render('WinstonQuery', result);
 });
 
 
@@ -218,7 +245,7 @@ var sensor = {
         log.info('DHT11', readout);
 
         //Log to Google Sheet
-    workingAddingRows(readout);
+        workingAddingRows(readout);
 
         setTimeout(function() {
             sensor.read();
