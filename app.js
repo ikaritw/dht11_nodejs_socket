@@ -105,15 +105,21 @@ app.get('/GoogleQuery', function(req, res) {
 });
 
 app.post('/WinstonQuery', function(req, res) {
+
+    var hoursAgo = req.body.hoursAgo || req.query.hoursAgo;
+    hoursAgo = hoursAgo || "3";
+
+    hoursAgo = parseInt(hoursAgo, 10);
+
     var options = {
-        from: Date.now - 24 * 60 * 60 * 1000,
-        until: Date.now,
-        limit: 60 * 60 * 24,
+        from: Date.now() - hoursAgo * 60 * 60 * 1000,
+        until: Date.now(),
+        limit: 60 * 60 * hoursAgo,
         start: 0,
         order: 'asc',
         fields: ['timestamp', 'humidity', 'temperature']
     };
-    
+
     //
     // Find items logged between today and yesterday.
     //
@@ -245,7 +251,7 @@ var sensor = {
         log.info('DHT11', readout);
 
         //Log to Google Sheet
-        workingAddingRows(readout);
+        //workingAddingRows(readout);
 
         setTimeout(function() {
             sensor.read();
@@ -254,8 +260,7 @@ var sensor = {
 };
 if (sensor.initialize()) {
     sensor.read();
-}
-else {
+} else {
     log.warn('Failed to initialize sensor');
 }
 

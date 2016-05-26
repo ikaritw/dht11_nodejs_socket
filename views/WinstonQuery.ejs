@@ -1,106 +1,105 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title><%= title %></title>
-	<!--Bootstrap-->
-	<link href="./css/bootstrap.css" rel="stylesheet" media="screen">
-</head>
-<body>
-	<div class="jumbotron">
-		<div class="container">
-			<h1>DHT11 on Raspberry Pi with NodeJS</h1>
-		</div>
-	</div>
-	<div class="container">
-		<div id="chartContainerTemp" style="height: 300px; width:100%;"></div>
-		<div id="chartContainerHum" style="height: 300px; width:100%;"></div>
-	</div>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
-	<script src="/js/canvasjs.min.js"></script>
-	<script>
-	    
-    var chart_temp;
-    var chart_hum;
-    
-    var dps_temp=[],dps_hum=[];
-    
-    function initCanvasJS(cb) {
-        cb = cb || function(){};
-    	chart_temp = new CanvasJS.Chart("chartContainerTemp", {
-    		title: {
-    			text: "Temperature"
-    		},
-    		zoomEnabled: true,
-    		zoomType: "xy",
-    		theme: "theme1",
-    		axisY: {
-    			title: "Temperature (C)",
-    		},
-    		axisX: {
-    			title: "Time",
-    		},
-    		data: [{
-    			type: "line",
-    			xValueType: "dateTime",
-    			dataPoints: dps_temp
-    		}]
-    	});
-    	chart_hum = new CanvasJS.Chart("chartContainerHum", {
-    		title: {
-    			text: "Humidity"
-    		},
-    		zoomEnabled: true,
-    		zoomType: "xy",
-    		theme: "theme1",
-    		axisY: {
-    			title: "Humidity (%)",
-    		},
-    		axisX: {
-    			title: "Time",
-    		},
-    
-    		data: [{
-    			type: "line",
-    			xValueType: "dateTime",
-    			dataPoints: dps_hum
-    		}]
-    	});
-    	
-    	if(cb){
-    	    cb();
-    	}
-    	
-    }
-    
-    function chartRender(data){
-        dps_temp = data.dps_temp;
-        dps_hum = data.dps_hum;
-    	
-    	initCanvasJS(function(){
-    	    chart_temp.render();
-    	    chart_hum.render();
-    	});
-        
-    }
-    
-    $(function(){
-        $.post('/WinstonQuery',function(data){
-            //console.log(data);
-            var raw = data.file;
-            var temp = [];
-            var hum = [];
-            for(var i=0;i<raw.length;i++){
-                var time = 1 * new Date(raw[i].timestamp);
-                temp.push({x:time,y:raw[i].temperature});
-                hum.push({x:time,y:raw[i].humidity});
-            }
-    	    chartRender({
-    	        "dps_temp":temp,
-    	        "dps_hum":hum
-    	    });
-    	});
-    });
 
-	</script>
+<head>
+    <title>
+        <%= title %>
+    </title>
+    <!--Bootstrap-->
+    <link href="./css/bootstrap.css" rel="stylesheet" media="screen">
+</head>
+
+<body>
+    <div class="jumbotron">
+        <div class="container">
+            <h1>DHT11 on Raspberry Pi</h1>
+        </div>
+    </div>
+    <div class="container">
+        <div id="chartContainer" style="height:400px; width:100%;"></div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script src="/js/canvasjs.min.js"></script>
+    <script>
+        var chart;
+        var dps_temp = [];
+        var dps_hum = [];
+
+        function initCanvasJS(cb) {
+            cb = cb || function() {};
+
+            chart = new CanvasJS.Chart("chartContainer", {
+                animationEnabled: true,
+                title: {
+                    text: "Temperature & Humidity"
+                },
+                zoomEnabled: true,
+                zoomType: "xy",
+                theme: "theme1",
+                axisY: {
+                    //title: "Temperature (C)",
+                    gridColor: "Silver",
+                    tickColor: "Silver"
+                },
+                axisX: {
+                    title: "Time",
+                    valueFormatString: "hh:ss"
+                },
+                data: [{
+                    type: "line",
+                    showInLegend: true,
+                    name: "Temperature",
+                    xValueType: "dateTime",
+                    dataPoints: dps_temp
+                }, {
+                    type: "line",
+                    showInLegend: true,
+                    name: "Humidity",
+                    xValueType: "dateTime",
+                    dataPoints: dps_hum
+                }]
+            });
+
+            if (cb) {
+                cb();
+            }
+
+        }
+
+        function chartRender(data) {
+            dps_temp = data.dps_temp;
+            dps_hum = data.dps_hum;
+
+            initCanvasJS(function() {
+                chart.render();
+            });
+
+        }
+
+        $(function() {
+            $.post('', function(data) {
+                //console.log(data);
+                var raw = data.file;
+                var temp = [];
+                var hum = [];
+                for (var i = 0; i < raw.length; i++) {
+                    var time = 1 * new Date(raw[i].timestamp);
+                    temp.push({
+                        x: time,
+                        y: raw[i].temperature
+                    });
+                    hum.push({
+                        x: time,
+                        y: raw[i].humidity
+                    });
+                }
+                chartRender({
+                    "dps_temp": temp,
+                    "dps_hum": hum
+                });
+            });
+        });
+    </script>
 </body>
+
 </html>
