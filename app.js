@@ -175,7 +175,7 @@ module.exports = app;
 /*
  * Add Google Spreadsheet Log
  */
-
+/*
 var GoogleSpreadsheet = require('google-spreadsheet');
 var async = require('async');
 var os = require('os');
@@ -232,7 +232,7 @@ function workingAddingRows(rawdata) {
         });
     }
 }
-
+*/
 
 /*
  * 初始化感測器
