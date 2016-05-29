@@ -38,3 +38,4 @@ config/*
 # time-lapse
 time-lapse/*.jpeg
 
+public/time-lapse/*
