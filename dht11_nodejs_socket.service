@@ -2,7 +2,7 @@
 Description=DHT11 on express with socket.io
 
 [Service]
-ExecStart=sudo /home/pi/dht11_nodejs_socket/bin/www
+ExecStart=/home/pi/dht11_nodejs_socket/bin/www
 Restart=on-failure
 User=pi
 Group=pi

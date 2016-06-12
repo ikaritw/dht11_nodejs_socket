@@ -18,7 +18,7 @@ var log = new(winston.Logger)({
   ]
 });
 
-var sensorLog = new(winston.Logger)({
+sensorLog = new(winston.Logger)({
   level: 'info',
   transports: [
     new(winston.transports.File)({

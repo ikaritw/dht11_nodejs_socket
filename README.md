@@ -15,3 +15,41 @@
 - Log to mongoDB
 - Log to AWS
 - Add Blynk App
+
+## Systemd系統
+
+# 安裝設定文件到 Systemd 
+
+> $ sudo cp dht11_nodejs_socket.service /etc/systemd/system
+
+# 重載安裝文件
+
+> $ sudo systemctl daemon-reload
+
+# 啟動服務
+
+> $ sudo systemctl start dht11_nodejs_socket
+
+# 查看状态
+
+> $ sudo systemctl status dht11_nodejs_socket
+
+# 查看日志
+
+> $ sudo journalctl -u dht11_nodejs_socket
+
+# 输出最新日誌
+
+> $ sudo journalctl --follow -u dht11_nodejs_socket
+
+# 重啟服務
+
+> $ sudo systemctl restart dht11_nodejs_socket
+
+# 停止服務
+
+> $ sudo systemctl stop dht11_nodejs_socket
+
+# 設為開機啟動
+
+> $ sudo systemctl enable dht11_nodejs_socket
