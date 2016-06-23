@@ -133,11 +133,12 @@ var sensor = {
     readout = sensorLib.read();
 
     //Log to locale file
-    sensorLog.info('DHT11', readout);
+    if(readout.errors === 0) {
+        sensorLog.info('DHT11', readout);
 
-    //Log to Google Sheet
-    //googlequery.workingAddingRows(readout);
-
+        //Log to Google Sheet
+        //googlequery.workingAddingRows(readout);
+    }
     setTimeout(function() {
       sensor.read();
     }, sensorInterval * 1000);
