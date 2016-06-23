@@ -2,10 +2,13 @@
 Description=DHT11 on express with socket.io
 
 [Service]
+Type=simple
 ExecStart=/home/pi/dht11_nodejs_socket/bin/www
-Restart=on-failure
-User=pi
-Group=pi
+#Restart=on-failure
+Restart=always
+RestartSec=10  
+#User=pi
+#Group=pi
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=NODE_ENV=production
 WorkingDirectory=/home/pi/dht11_nodejs_socket
