@@ -53,8 +53,9 @@ app.use('/googlequery', googlequery);
 var winstonquery = require('./routes/winstonquery');
 app.use('/winstonquery', winstonquery);
 
-
+var readout = {};
 app.get('/sensor', function(req, res) {
+  //"humidity":41,"temperature":30,"isValid":true,"errors":0,"cputemp":30
   if (readout) {
     res.json({
       livedata: readout
@@ -119,93 +120,93 @@ log.info("app.js is ready.");
 module.exports = app;
 
 
-var config = require("./config/config.json");
 var mqtt = require("mqtt");
-var mqttClient = mqtt.connect('mqtt://things.ubidots.com', {
-  username: config.ubidots.token,
-  password: ""
-});
-var Ubidots = {
-  "write": function(data) {
-    var json = JSON.stringify(data);
-    mqttClient.publish("/v1.6/devices/raspberry", json, function(err, res) {
-      //console.log("publish done:" + json);
-      if (err) {
-        console.error(err);
-      }
-      if (res) {
-        console.log(res);
-      }
-    });
-  },
-  "append_dht11": function(readout) {
-    var data = {
-      "dht11_humidity": readout.humidity,
-      "dht11_temperature": readout.temperature
-    };
-    Ubidots.write(data);
-  },
-  "append_cpu_temperature": function(cpu_temperature) {
-    var data = {
-      "cpu_temperature": cpu_temperature
-    };
-    Ubidots.write(data);
-  }
-};
 
+var config = require("./config/config.json");
+
+/*Ubidots*/
+function Ubidots(deviceName, token) {
+  var __deviceName = deviceName;
+  var __token = token;
+  var __pushURL = "/v1.6/devices/" + __deviceName;
+
+  var mqttClient = mqtt.connect('mqtt://things.ubidots.com', {
+    username: __token,
+    password: ""
+  });
+
+  return {
+    "write": function(data) {
+      var json = {
+        "cpu_temperature": data.cputemp,
+        "dht11_temperature": data.temperature,
+        "dht11_humidity": data.humidity
+      };
+      mqttClient.publish(__pushURL, JSON.stringify(json), function(err, res) {
+        //console.log("publish done:" + json);
+        if (err) {
+          console.error(err);
+        }
+        if (res) {
+          console.log(res);
+        }
+      });
+    }
+  };
+
+}
+var ubidots = new Ubidots("raspberry", config.ubidots.token);
 
 /*
- * 初始化感測器
+ * 初始化感測器 DHT11
  */
-var sensorLib = require('node-dht-sensor');
-var readout = null;
-var sensorInterval = 60;
-var Sensor = {
-  initialize: function() {
-    return sensorLib.initialize(11, 2);
-  },
-  read: function() {
-    readout = sensorLib.read();
-    //"humidity":41,"temperature":30,"isValid":true,"errors":0
+var dht = require('node-dht-sensor');
+var raspi = require('node-raspi');
 
-    //Log to locale file
-    if (readout.errors === 0) {
-      sensorLog.info('DHT11', readout);
+function DHT11(deviceType, gpio, interval) {
+  var __initialize = dht.initialize(deviceType, gpio);
 
-      //Log to Google Sheet
-      //googlequery.workingAddingRows(readout);
+  var __dht11 = {
+    "initialize": function() {
+      return __initialize;
+    },
+    "read": function(callback) {
+      //humidity and temperature
+      var dhtread = dht.read();
 
-      // Log to ubidots
-      Ubidots.append_dht11(readout);
+      // CPU tempetature
+      dhtread.cputemp = raspi.getThrm();
+
+      //Log to locale file
+      if (dhtread.errors === 0) {
+        //sensorLog.info('DHT11', dhtread);
+
+        //Log to Google Sheet
+        //googlequery.workingAddingRows(dhtread);
+
+        if (callback) {
+          callback(dhtread); //"humidity":41,"temperature":30,"isValid":true,"errors":0,"cputemp":30
+
+          setTimeout(function() {
+            __dht11.read(callback);
+          }, interval * 1000);
+        }
+      }
     }
-    setTimeout(function() {
-      Sensor.read();
-    }, sensorInterval * 1000);
-  }
-};
-if (Sensor.initialize()) {
-  Sensor.read();
+  };
+  return __dht11;
+}
+
+var sensorInterval = 60 * 5; //five minutes
+var dht11 = new DHT11(11, 2, sensorInterval);
+
+if (dht11.initialize()) {
+  dht11.read(function(dhtread) {
+    // Log to ubidots
+    ubidots.write(dhtread);
+    readout = dhtread;
+  });
 }
 else {
   log.warn('Failed to initialize sensor');
 }
-
-
-// CPU tempetature
-var exec = require('child_process').exec;
-var child;
-var cpu_tempe;
-
-setInterval(function() {
-  child = exec("/bin/cat /sys/class/thermal/thermal_zone0/temp", function(error, stdout, stderr) {
-    if (error) {
-      log.error('exec error: ' + error);
-    }
-    else {
-      cpu_tempe = parseInt(stdout, 10) / 1000;
-      Ubidots.append_cpu_temperature(cpu_tempe);
-      //sensorLog.info('cpu_tempe', cpu_tempe);
-      //console.log(new Date().toJSON() + ":" + cpu_tempe);
-    }
-  });
-}, sensorInterval * 1000);
