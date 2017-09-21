@@ -1,12 +1,13 @@
 var dps_temp = []; // dataPoints
 var dps_hum = []; // dataPoints
+var dps_cpu = []; // dataPoints
 var chart;
 var dataLength = (60 / 5) * 60 * 8;
 
 function initCanvasJS(cb) {
   chart = new CanvasJS.Chart("chartContainer", {
     title: {
-      text: "Live Temperature & Humidity"
+      text: "Live DHT11 && CPU"
     },
     zoomEnabled: true,
     zoomType: "xy",
@@ -27,6 +28,11 @@ function initCanvasJS(cb) {
       name: "Humidity",
       xValueType: "dateTime",
       dataPoints: dps_hum
+    }, {
+      type: "line",
+      name: "CPU",
+      xValueType: "dateTime",
+      dataPoints: dps_cpu
     }]
   });
 
@@ -35,16 +41,28 @@ function initCanvasJS(cb) {
   }
 }
 
-function updateCanvasJS(xVal, yVal_temp, yVal_hum) {
+function updateCanvasJS(sensorData) {
+
+  var xVal = Date.now();
+  var yVal_temperature = sensorData.temperature;
+  var yVal_humidity = sensorData.humidity;
+  var yVal_cputemp = sensorData.cputemp
+
   dps_temp.push({
     x: xVal,
-    y: yVal_temp
+    y: yVal_temperature
   });
 
   dps_hum.push({
     x: xVal,
-    y: yVal_hum
+    y: yVal_humidity
   });
+
+  dps_cpu.push({
+    x: xVal,
+    y: yVal_cputemp
+  });
+
 
   if (dps_temp.length > dataLength) {
     dps_temp.shift();
@@ -53,6 +71,11 @@ function updateCanvasJS(xVal, yVal_temp, yVal_hum) {
   if (dps_hum.length > dataLength) {
     dps_hum.shift();
   }
+
+  if (dps_cpu.length > dataLength) {
+    dps_cpu.shift();
+  }
+
   chart.render();
 }
 
@@ -76,30 +99,23 @@ function initSocket() {
 
   socket = io(url, options);
   socket.on('old_data', function(data) {
-    //console.log(data);
-
     var sensorData = data.livedata;
-
-    var xVal = Date.now();
-    var yVal_temp = sensorData.temperature;
-    var yVal_hum = sensorData.humidity;
-
-    updateCanvasJS(xVal, yVal_temp, yVal_hum);
+    updateCanvasJS(sensorData);
   });
 }
 
 /*global CanvasJS io */
 window.onload = function() {
+
+  //init canvas
   initCanvasJS(function() {
     $.get('/sensor', function(data) {
       var sensorData = data.livedata;
-
-      var xVal = Date.now();
-      var yVal_temp = sensorData.temperature;
-      var yVal_hum = sensorData.humidity;
-
-      updateCanvasJS(xVal, yVal_temp, yVal_hum);
+      updateCanvasJS(sensorData);
     }, 'json');
+
+    //init socket
+    initSocket();
   });
-  initSocket();
+  
 };

@@ -194,7 +194,7 @@ function DHT11(deviceType, gpio, interval,callback) {
 }
 
 var sensorInterval = 60 * 5; //five minutes
-sensorInterval = 2;// 2 seconds
+//sensorInterval = 2;// 2 seconds
 
 var logData = function(dhtread){
   log.info(dhtread);
