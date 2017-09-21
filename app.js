@@ -163,14 +163,14 @@ var ubidots = new Ubidots("raspberry", config.ubidots.token);
 var dht = require('node-dht-sensor');
 var raspi = require('node-raspi');
 
-function DHT11(deviceType, gpio, interval) {
+function DHT11(deviceType, gpio, interval,callback) {
   var __initialize = dht.initialize(deviceType, gpio);
 
   var __dht11 = {
     "initialize": function() {
       return __initialize;
     },
-    "read": function(callback) {
+    "read": function() {
       //humidity and temperature
       var dhtread = dht.read();
 
@@ -186,10 +186,6 @@ function DHT11(deviceType, gpio, interval) {
 
         if (callback) {
           callback(dhtread); //"humidity":41,"temperature":30,"isValid":true,"errors":0,"cputemp":30
-
-          setTimeout(function() {
-            __dht11.read(callback);
-          }, interval * 1000);
         }
       }
     }
@@ -198,15 +194,25 @@ function DHT11(deviceType, gpio, interval) {
 }
 
 var sensorInterval = 60 * 5; //five minutes
-var dht11 = new DHT11(11, 2, sensorInterval);
+sensorInterval = 2;// 2 seconds
 
-if (dht11.initialize()) {
-  dht11.read(function(dhtread) {
-    // Log to ubidots
-    ubidots.write(dhtread);
-    readout = dhtread;
-  });
-}
-else {
-  log.warn('Failed to initialize sensor');
-}
+var logData = function(dhtread){
+  log.info(dhtread);
+  ubidots.write(dhtread);
+  readout = dhtread;
+};
+
+var dht11 = new DHT11(11, 2, sensorInterval,logData);
+var isInitialed = dht11.initialize();
+
+var __initInterval = setInterval(function(){
+  log.info('DHT11 initailed:' + isInitialed );
+  if (isInitialed) {
+    clearInterval(__initInterval);
+    setInterval(dht11.read, sensorInterval * 1000);
+    log.info("Set interval read for seconds:" + sensorInterval);
+  } else {
+    log.warn('Failed to initialize sensor');
+    isInitialed = dht11.initialize();
+  }
+}, 1000);
